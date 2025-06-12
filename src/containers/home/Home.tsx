@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import Grid from '@mui/material/Grid'; 
+import Grid from '@mui/material/Grid2'; 
 import { Button, TextField, Typography } from "@mui/material";
 import { Experience } from "../../components/Experience";
 
