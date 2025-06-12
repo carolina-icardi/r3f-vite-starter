@@ -4,9 +4,9 @@ import { Avatar } from "./Avatar";
 export const Experience = () => {
   return (
     <> 
-   <OrbitControls />
-    <Avatar />
-    <Environment preset="city" /> 
+  
+    <Avatar position={[0, -3, 5]} scale={2} />
+    <Environment preset="warehouse" /> 
     
      {/*  <OrbitControls />
       <mesh>
