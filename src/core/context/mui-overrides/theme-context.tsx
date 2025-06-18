@@ -91,14 +91,16 @@ const ThemeProviderWrapper: React.FC<ThemeProviderWrapperProps> = ({
       },
       "&:active": {
         backgroundColor:'#e5ab0f',
-         color:'#4a715d',  // esempio: ancora più scuro per il click
+         color:'#4a715d', 
       },
             "&:disabled": {
               backgroundColor: "#90EE90",
               color: "#90EE90",
             },
           },
+          
         },
+      
       },
       MuiTooltip: {
         styleOverrides: {
