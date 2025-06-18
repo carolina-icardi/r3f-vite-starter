@@ -49,10 +49,10 @@ useEffect(() => {
   if (currentAnimation && currentAnimation !== animation) {
     setAnimation(currentAnimation);
   }
-}, [currentAnimation]);
+}, [currentAnimation]); 
 
 
-  const { playAudio, script } = useControls({
+ /*  const { playAudio, script } = useControls({
     playAudio: false,
     script: {
       value: "test",
@@ -62,13 +62,13 @@ useEffect(() => {
 
   const audio = useMemo(() => new Audio(`/Audio/${script}.wav`), [script]);
 
-/*   useFrame(() => {
+  useFrame(() => {
     if (audio.paused || audio.ended) {
       setAnimation("Idle");
     }
   }); */
 
-  useEffect(() => {
+ /*  useEffect(() => {
     if (playAudio) {
       setAnimation("TalkingPoseTwo");
       audio.play();
@@ -76,7 +76,7 @@ useEffect(() => {
      // setAnimation("Waving");
       audio.pause();
     }
-  }, [playAudio, script]);
+  }, [playAudio, script]); */
 
   const group = useRef<THREE.Group>(null!);
   const { scene } = useGLTF("/Models/6849947d3fd646e4c15bec8b.glb");
@@ -115,14 +115,14 @@ useEffect(() => {
     group
   );
 
-  useEffect(() => {
+ useEffect(() => {
     if (!animation || !actions[animation]) return;
 
     actions[animation].reset().fadeIn(0.5).play();
     return () => {
       actions[animation]?.fadeOut(0.5);
     };
-  }, [animation]);
+  }, [animation]); 
 
   return (
     <group {...props} dispose={null} ref={group}>
