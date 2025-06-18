@@ -3,70 +3,65 @@ import Grid from "@mui/material/Grid2";
 import { Button, TextField, Typography } from "@mui/material";
 import { Experience } from "../../components/Experience";
 import React, { useEffect, useRef, useState } from "react";
-import MicRecorder from "mic-recorder-to-mp3";
-import lamejs from "lamejs";
+import RecordRTC, { StereoAudioRecorder } from "recordrtc";
 import KeyboardVoiceIcon from "@mui/icons-material/KeyboardVoice";
 import StopIcon from "@mui/icons-material/Stop";
 
 function Home() {
-  const recorderRef = useRef<MicRecorder | null>(null);
 
-  /*     useEffect(() => {
-        recorderRef.current = new MicRecorder({ bitRate: 128 });
-    }, []);
-     */
+  const [avatarAnimation, setAvatarAnimation] = useState("Waving");
 
-  useEffect(() => {
-    // 1. Setta Lame PRIMA di importare la libreria
-    // @ts-ignore
-    window.Lame = lamejs;
+  const recorderRef = useRef<RecordRTC | null>(null);
 
-    // 2. Importa dinamicamente mic-recorder-to-mp3
-    import("mic-recorder-to-mp3").then((module) => {
-      const MicRecorder = module.default;
-      recorderRef.current = new MicRecorder({ bitRate: 128 });
-    });
-  }, []);
   const [isRecording, setIsRecording] = useState(false);
-  const startRecording = async () => {
-    try {
-      if (recorderRef.current && recorderRef) {
-        await recorderRef.current.start();
-        console.log(recorderRef.current.startTime);
-        setIsRecording(true);
-      } else {
-        return;
-      }
-    } catch (e) {
-      console.error("Mic permission error:", e);
-    }
-  };
 
-  const stopRecording = async () => {
-    await recorderRef.current.stop();
-    const [buffer, blob] = await recorderRef.current.getMp3();
+
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    const recorder = new RecordRTC(stream, {
+      type: "audio",
+      mimeType: "audio/wav",
+      recorderType: StereoAudioRecorder,
+      numberOfAudioChannels: 1,
+      desiredSampRate: 16000,
+    });
+
+    recorder.startRecording();
+    recorderRef.current = recorder;
+    setIsRecording(true);
+     setAvatarAnimation("Idle");
+  } catch (e) {
+    console.error("Mic permission error:", e);
+  }
+};
+
+
+const stopRecording = async () => {
+  if (!recorderRef.current) return;
+
+  recorderRef.current.stopRecording(async() => {
+    const blob = recorderRef.current!.getBlob();
     setIsRecording(false);
-
-    const file = new File(buffer, "audio.mp3", { type: blob.type });
-
+setAvatarAnimation("TalkingPoseTwo");
+    const file = new File([blob], "audio.wav", { type: blob.type });
     const formData = new FormData();
     formData.append("audio", file);
-
-    const response = await fetch("http://localhost:3001/audiochat", {
+const response = await fetch("http://localhost:3001/audiochat", {
       method: "POST",
       body: formData,
     });
-
     const data = await response.json();
-    // -------- resp testo
-    // fetch synthesize
     console.log("Transcription:", data);
-    if (data && data.audioBase64) {
-      const audioSrc = `data:audio/mp3;base64,${data.audioBase64}`;
-      const audioElement = new Audio(audioSrc);
-      audioElement.play();
+    if (data?.audioBase64) {
+      const audioSrc = `data:audio/wav;base64,${data.audioBase64}`;
+      new Audio(audioSrc).play();
     }
-  };
+    
+  });
+};
+
 
   return (
     <Grid
@@ -78,7 +73,7 @@ function Home() {
       <Grid size={6}>
         <Canvas shadows camera={{ position: [0, 0, 8], fov: 30 }}>
           <color attach="background" args={["#ececec"]} />
-          <Experience />
+          <Experience currentAnimation={avatarAnimation}/>
         </Canvas>
       </Grid>
       <Grid

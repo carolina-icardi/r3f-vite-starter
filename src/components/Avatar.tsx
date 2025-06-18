@@ -42,8 +42,15 @@ type GLTFResult = GLTF & {
   animations: GLTFAction[];
 };
 
-export function Avatar(props: JSX.IntrinsicElements["group"]) {
-  const [animation, setAnimation] = useState("ThoughtfulHeadNod");
+export function Avatar({ currentAnimation, ...props }: { currentAnimation: string } & JSX.IntrinsicElements["group"]) {
+  const [animation, setAnimation] = useState(currentAnimation);
+
+useEffect(() => {
+  if (currentAnimation && currentAnimation !== animation) {
+    setAnimation(currentAnimation);
+  }
+}, [currentAnimation]);
+
 
   const { playAudio, script } = useControls({
     playAudio: false,
@@ -55,18 +62,18 @@ export function Avatar(props: JSX.IntrinsicElements["group"]) {
 
   const audio = useMemo(() => new Audio(`/Audio/${script}.wav`), [script]);
 
-  useFrame(() => {
+/*   useFrame(() => {
     if (audio.paused || audio.ended) {
       setAnimation("Idle");
     }
-  });
+  }); */
 
   useEffect(() => {
     if (playAudio) {
       setAnimation("TalkingPoseTwo");
       audio.play();
     } else {
-      setAnimation("Waving");
+     // setAnimation("Waving");
       audio.pause();
     }
   }, [playAudio, script]);
