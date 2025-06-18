@@ -2,8 +2,61 @@ import { Canvas } from "@react-three/fiber";
 import Grid from '@mui/material/Grid2'; 
 import { Button, TextField, Typography } from "@mui/material";
 import { Experience } from "../../components/Experience";
+import React, { useEffect, useRef, useState } from "react";
+import MicRecorder from 'mic-recorder-to-mp3';
+
 
 function Home() {
+ const recorderRef = useRef<MicRecorder | null>(null);
+
+    useEffect(() => {
+        recorderRef.current = new MicRecorder({ bitRate: 128 });
+    }, []);
+    const [isRecording, setIsRecording] = useState(false);
+
+    const startRecording = async () => {
+        try {
+          if (recorderRef.current  && recorderRef) {
+           await recorderRef.current.start();
+            console.log(recorderRef.current.startTime)
+            setIsRecording(true);
+          }
+          else{
+            return;
+          }
+            
+        } catch (e) {
+            console.error('Mic permission error:', e);
+        }
+    };
+
+    const stopRecording = async () => {
+        await recorderRef.current.stop();
+        const [buffer, blob] = await recorderRef.current.getMp3();
+        setIsRecording(false);
+
+        const file = new File(buffer, 'audio.mp3', { type: blob.type });
+
+        const formData = new FormData();
+        formData.append('audio', file);
+
+        const response = await fetch('http://localhost:3001/audiochat', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await response.json();
+        // -------- resp testo
+        // fetch synthesize
+        console.log('Transcription:', data);
+        if (data && data.audioBase64) {
+            const audioSrc = `data:audio/mp3;base64,${data.audioBase64}`;
+            const audioElement = new Audio(audioSrc);
+            audioElement.play();
+        }
+    } 
+
+
   return (
     <Grid container display={"flex"} flexDirection={"row"} sx={{width:'100wv', height:'100vh'}} >
      
@@ -30,6 +83,8 @@ function Home() {
         </Grid>
      </Grid>
     </Grid>
+
+    
   );
 }
 export const textAreaStyle = {
