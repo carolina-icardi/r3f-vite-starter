@@ -35,7 +35,7 @@ const ThemeProviderWrapper: React.FC<ThemeProviderWrapperProps> = ({
         default: "#F7F8FB",
       },
       primary: {
-        main: "#5B1DEC",
+        main: "#4a715d",
         contrastText: "#FFFFFF",
       },
       secondary: {

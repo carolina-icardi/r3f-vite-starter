@@ -1,24 +1,50 @@
 import { Canvas } from "@react-three/fiber";
 import Grid from "@mui/material/Grid2";
-import { Box, Button, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { Experience } from "../../components/Experience";
 import React, { useRef, useState } from "react";
 import RecordRTC, { StereoAudioRecorder } from "recordrtc";
 import KeyboardVoiceIcon from "@mui/icons-material/KeyboardVoice";
 import StopIcon from "@mui/icons-material/Stop";
 import axios from "axios";
-import { text } from "stream/consumers";
+import { Chat } from "../../components/atoms/chat";
+import SendIcon from "@mui/icons-material/Send";
 
 function Home() {
   const [avatarAnimation, setAvatarAnimation] = useState("Waving");
   const [response, setResponse] = useState("");
-
+  const [question, setQuestion] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recorderRef = useRef<RecordRTC | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
 
+  //ANIMAZIONI CASUALI DURANTE IL TALKING
+
+  const talkingAnimations = ["Talking", "TalkingPoseTwo", "ThoughtfulHeadNod"];
+  const getRandomAnimation = (exclude?: string) => {
+    const options = talkingAnimations.filter((a) => a !== exclude);
+    return options[Math.floor(Math.random() * options.length)];
+  };
+  function startTalkingAnimation() {
+    const interval = setInterval(() => {
+      const randomAnimation = getRandomAnimation(avatarAnimation);
+      setAvatarAnimation(randomAnimation);
+    }, Math.floor(Math.random() * 800) + 700); 
+    return interval;
+  }
+
   const startRecording = async () => {
     try {
+      setResponse("");
+      setQuestion("");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       const recorder = new RecordRTC(stream, {
@@ -32,7 +58,7 @@ function Home() {
       recorder.startRecording();
       recorderRef.current = recorder;
       setIsRecording(true);
-      setAvatarAnimation("Idle");
+      // setAvatarAnimation("Idle");
     } catch (e) {
       console.error("Mic permission error:", e);
     }
@@ -44,31 +70,47 @@ function Home() {
     recorderRef.current.stopRecording(async () => {
       const blob = recorderRef.current!.getBlob();
       setIsRecording(false);
-      setAvatarAnimation("ThoughtfulHeadNod");
+      setIsThinking(true);
+      // setAvatarAnimation("ThoughtfulHeadNod");
       const file = new File([blob], "audio.wav", { type: blob.type });
       const formData = new FormData();
       formData.append("audio", file);
-      const response = await axios.post("http://localhost:3001/audiochat", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.post(
+        "http://localhost:3001/audiochat",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       const data = await response.data;
-      setResponse(data.responseText); 
+      setResponse(data.responseText);
+      setQuestion(data.questionText);
       console.log("Transcription:", data);
-
+      setIsSpeaking(false);
       const audioResponse = await axios.post(
         "http://localhost:3001/synthesize",
         {
           text: data.responseText,
         }
       );
-
+      setIsThinking(false);
       const audioResponseData = audioResponse.data;
 
       if (audioResponseData && audioResponseData.audioBase64) {
-        const audioSrc = `data:audio/wav;base64,${data.audioBase64}`;
+        const audioSrc = `data:audio/wav;base64,${audioResponseData.audioBase64}`;
         const audio = new Audio(audioSrc);
+        let animationInterval: NodeJS.Timeout;
+
+        audio.addEventListener("play", () => {
+          setIsSpeaking(true);
+          animationInterval = startTalkingAnimation();
+        });
+        audio.addEventListener("ended", () => {
+          clearInterval(animationInterval);
+          setAvatarAnimation("Idle");
+        });
         audio.volume = 1;
         audio
           .play()
@@ -115,30 +157,54 @@ function Home() {
             Welcome to your educational platform!
           </Typography>
 
-          <TextField
-            fullWidth
-            multiline
-            minRows={8}
-            placeholder="Write your question here..."
-            variant="outlined"
-            sx={{
-              marginTop: "0.5em",
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "6px",
-              },
-            }}
-          />
-          <Button
-            sx={{
-              marginTop: "0.5em",
-              backgroundColor: "#4a715d",
-              color: "#e5ab0f",
-              width: "100%",
-            }}
-            variant="contained"
-          >
-            Ask me
-          </Button>
+          <Box sx={{ position: "relative", width: "100%", marginTop: "0.5em" }}>
+            <TextField
+              fullWidth
+              multiline
+              minRows={8}
+              placeholder="Write your question here..."
+              variant="outlined"
+              sx={{
+                marginTop: "0.5em",
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "6px",
+                },
+              }}
+            />
+            <Button
+              variant="contained"
+              endIcon={<SendIcon />}
+              sx={{
+                position: "absolute",
+                bottom: 12,
+                right: 12,
+                backgroundColor: "#4a715d",
+                color: "#e5ab0f",
+                "&:hover": {
+                  backgroundColor: "#2f5544",
+                },
+              }}
+            >
+              Ask me
+            </Button>
+            <Button
+              variant="contained"
+              endIcon={<SendIcon />}
+              sx={{
+                position: "absolute",
+                bottom: 12,
+                right: 12,
+                backgroundColor: "#4a715d",
+                color: "#e5ab0f",
+                "&:hover": {
+                  backgroundColor: "#2f5544",
+                  color: "#e5ab0f",
+                },
+              }}
+            >
+              Ask me
+            </Button>
+          </Box>
 
           <Grid sx={{ marginTop: "0.5em", width: "100%" }}>
             {!isRecording ? (
@@ -150,8 +216,8 @@ function Home() {
                   color: "#4a715d",
                   width: "100%",
                   "&:hover": {
-                    backgroundColor: "#4a715d",
-                    color: "#e5ab0f",
+                    backgroundColor: "#cc9600",
+                    color: "#2f5544",
                   },
                 }}
                 variant="contained"
@@ -178,54 +244,9 @@ function Home() {
             )}
           </Grid>
 
-    {/*       <Box
-            borderRadius="6px"
-            borderColor={"#4a715d"}
-            border={1}
-            marginTop="2em"
-            marginBottom="1.5em"
-            padding="1em"
-            sx={{
-              backgroundColor: "#f0f0f0",
-              "&::before": {
-                content: '""',
-                position: "absolute",
-                left: -10,
-                top: 10,
-                width: 0,
-                height: 0,
-                borderTop: "10px solid transparent",
-                borderRight: "10px solid #f0f0f0",
-                borderBottom: "10px solid transparent",
-              },
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "14px",
-                color: "#4a715d",
-              }}
-            >
-              {response}
-            </Typography>
-          </Box>
-
-          <Box
-            borderRadius="6px"
-            borderColor={"#4a715d !important"}
-            border={1}
-            marginBottom="1em"
-            padding="1em"
-          >
-            <Typography
-              sx={{
-                fontSize: "14px",
-                color: "#4a715d",
-              }}
-            >
-              {response}
-            </Typography>
-          </Box> */}
+          {question && <Chat side="right" text={question} />}
+          {isThinking && <CircularProgress sx={{ marginTop: "10em" }} />}
+          {isSpeaking && response && <Chat side="left" text={response} />}
         </Grid>
       </Grid>
     </Grid>
